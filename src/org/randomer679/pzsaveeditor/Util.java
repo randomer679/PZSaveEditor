@@ -1,12 +1,41 @@
+/*******************************************************************************
+ * Copyright © 2013 Ben Taylor.
+ * 
+ * This file is part of PZSaveEditor.
+ * 
+ * PZSaveEditor is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * PZSaveEditor is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with PZSaveEditor. If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 package org.randomer679.pzsaveeditor;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class Util {
 	
+	@SuppressWarnings("serial")
+	public static class OldWorldException extends Exception {
+		@Override
+		public String getMessage() {
+			// TODO Auto-generated method stub
+			return super.getMessage();
+		}
+	}
+
 	private static File currentWorld;
 	private static File mapVerFile;
 	private static File sandboxInfo;
@@ -23,8 +52,59 @@ public class Util {
 	static final int ProperZombieSight = 2;
 	static final int ProperZombieHearing = 2;
 	static final int ProperZombieSmell = 2;
+	static final String copyright = "Copyright © 2013 Ben Taylor (a.k.a. randomer679).\n\n" +
+			"PZSaveEditor is free software: you can redistribute it and/or modify\n" +
+			"it under the terms of the GNU General Public License as published by\n" +
+			"the Free Software Foundation, either version 3 of the License, or\n" +
+			"(at your option) any later version.\n\n" +
+			"PZSaveEditor is distributed in the hope that it will be useful,\n" +
+			"but WITHOUT ANY WARRANTY; without even the implied warranty of\n" +
+			"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n" +
+			"GNU General Public License for more details.\n\n" +
+			"You should have received a copy of the GNU General Public License\n" +
+			"along with PZSaveEditor. If not, see <http://www.gnu.org/licenses/>.";
 	
-	public static WorldValues loadSandbox(File world) {
+	public static void saveSandbox(File saveLoc, WorldValues vals) { // TODO: Doh!
+		if(saveLoc.exists()) {
+			if(!(saveLoc.delete())) {
+				return;
+			}
+		}
+		try {
+			DataOutputStream output = new DataOutputStream(new FileOutputStream(saveLoc));
+			output.writeInt(vals.getZombieDensity());
+			output.writeInt(vals.getZombieDistribution());
+			output.writeInt(vals.getSurvivors());
+			output.writeInt(vals.getSpeed());
+			output.writeInt(vals.getDayLength());
+			output.writeInt(vals.getStartMonth());
+			output.writeInt(vals.getStartTime());
+			output.writeInt(vals.getWaterShutoff());
+			output.writeInt(vals.getElectricShutoff());
+			output.writeInt(vals.getLootAmount());
+			if(vals.getWorldVersion() >= 5) {
+				output.writeInt(vals.getTemperature());
+				output.writeInt(vals.getRain());
+			}
+			output.writeInt(vals.getZombieSpeed());
+			output.writeInt(vals.getZombieStrength());
+			output.writeInt(vals.getZombieToughness());
+			output.writeInt(vals.getZombieInfectionTransmission());
+			output.writeInt(vals.getZombieInfectionMortality());
+			output.writeInt(vals.getZombieReanimate());
+			output.writeInt(vals.getZombieCognition());
+			output.writeInt(vals.getZombieMemory());
+			output.writeInt(vals.getZombieDecomp());
+			output.writeInt(vals.getZombieSight());
+			output.writeInt(vals.getZombieHearing());
+			output.writeInt(vals.getZombieSmell());
+			output.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static WorldValues loadSandbox(File world) throws OldWorldException {
 		currentWorld = world;
 		mapVerFile = new File(currentWorld+File.separator+"map_ver.bin");
 		sandboxInfo = new File(currentWorld+File.separator+"map_sand.bin");
@@ -32,6 +112,10 @@ public class Util {
 		try {
 			DataInputStream input = new DataInputStream(new FileInputStream(mapVerFile));
 			int worldVersion = input.readInt();
+			if(worldVersion < 7) {
+				input.close();
+				throw new OldWorldException();
+			}
 			input.close();
 			input = new DataInputStream(new FileInputStream(sandboxInfo));
 			int zombieDensity = input.readInt();
